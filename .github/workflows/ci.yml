@@ -19,4 +19,4 @@ jobs:
     - name: Run tests
       run: |
         pip install -r requirements.txt
-        python -m pytest -vvvv
+        make tests
