@@ -1,0 +1,22 @@
+name: Run Slides35 Pytest Suite
+
+on:
+  push:
+
+jobs:
+  slides35-pytest-run-suite:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Run tests
+      run: |
+        pip install -r requirements.txt
+        python -m pytest -vvvv
