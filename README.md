@@ -6,6 +6,7 @@ Such slides can be nice for back-in-time presents or Art exhibitions.
 35mm = 1+3⁄8 or 1.375 inches refers to a famous [reversal (or slide) "positive" film size](https://en.wikipedia.org/wiki/Reversal_film).
 
 ![Slide projector](1024px-Zett_Fafix_BW_1.JPG)
+
 [Zett Fafix Diaprojektor with double slide carrier (credits Berthold Werner, public domain)](https://en.wikipedia.org/wiki/Reversal_film#/media/File:Zett_Fafix_BW_1.JPG)
 
 ## TL;DR
@@ -23,6 +24,7 @@ The standard Kodachrome mount (ie. surrounding frame) size is 2”x2” (inches,
 It embeds a 24x36mm image.
 
 ![Kodachrome slide mount in the 1990s](docs/Kodachrome_slide_mount_1990s.jpg)
+
 Source: [Unknown, Wikimedia](https://en.wikipedia.org/wiki/File:Kodachrome_slide_mount_1990s.jpg)
 
 [Many more Kodachrome slides formats are listed on this KODAK blog page.](https://kodakdigitizing.com/blogs/news/how-to-tell-which-type-of-slides-you-have)
