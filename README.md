@@ -21,6 +21,7 @@ That script helps in the preparatory steps for digital picture transfer onto a t
 ## About the Kodachrome 35mm slide
 The standard Kodachrome mount (ie. surrounding frame) size is 2”x2” (inches, or 5.08x5.08cm).
 It embeds a 24x36mm image.
+
 ![Kodachrome slide mount in the 1990s](docs/Kodachrome_slide_mount_1990s.jpg)
 Source: [Unknown, Wikimedia](https://en.wikipedia.org/wiki/File:Kodachrome_slide_mount_1990s.jpg)
 
