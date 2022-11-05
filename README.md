@@ -30,6 +30,10 @@ Source: [Unknown, Wikimedia](https://en.wikipedia.org/wiki/File:Kodachrome_slide
 [Many more Kodachrome slides formats are listed on this KODAK blog page.](https://kodakdigitizing.com/blogs/news/how-to-tell-which-type-of-slides-you-have)
 
 ## About slides viewers
+![Hama Dia N602 slides viewer](docs/800px-Diabetrachter_Hama.jpg)
+
+[Simple portable slide viewer - credit Harke - public domain](https://en.wikipedia.org/wiki/Slide_viewer#/media/File:Diabetrachter_Hama.jpg)
+
 There are simple slides viewer on the market for less than 60$ or more caroussel-like ones (often second-hand). More advanced devices allow to scan old slides, but this is more and expensive and not what we want here.
 
 One example of such viewers is the [KODAK 35mm Slide and Film Viewer](https://www.kodak.com/en/consumer/product/printing-scanning/film-scanners/kodak-35mm-slide-and-film-viewer).
