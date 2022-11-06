@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-""" Roadmap
+''' Roadmap
 Change number in one SVG file in Python
 Change image in one SVG file
 Make a list of JPG files sorted by date
 Make SVG files from JPG files with adequate numbering and file naming
-"""
+'''
 import pdb
 
 SLIDES35_DEFAULT_SVG_TEMPLATE = 'templates/36x24mmNumbered.svg'
@@ -13,6 +13,9 @@ SLIDES35_DEFAULT_SVG_TEMPLATE = 'templates/36x24mmNumbered.svg'
 from pathlib import Path
 from xml.dom import minidom
 import argparse
+import os
+import subprocess
+import tempfile
 
 class Slide:
     _id = None
@@ -28,7 +31,7 @@ class Slide:
             return self._template
         else:
             if not Path(template).exists():
-                raise FileNotFoundError("Could not find template: {}".format(template))
+                raise FileNotFoundError('Could not find template: {}'.format(template))
             self._template = str(Path(template))
             return self
 
@@ -51,18 +54,18 @@ class Slide:
             return self._picture
         else:
             if not Path(picture).exists():
-                raise FileNotFoundError("Could not find picture: {}".format(picture))
+                raise FileNotFoundError('Could not find picture: {}'.format(picture))
 
             self._picture = str(Path(picture))
             return self
 
     def svg(self):
         if not self._template or not Path(self._template).exists():
-            raise FileNotFoundError("Set the SVG template first")
+            raise FileNotFoundError('Set the SVG template first')
         if not self._id:
-            raise ValueError("Set the .id() value first")
+            raise ValueError('Set the .id() value first')
         if not self._picture:
-            raise ValueError("Set the .picture() value first")
+            raise ValueError('Set the .picture() value first')
         rootElem = minidom.parse(self._template)
         rootElem.getElementsByTagName('image')[0].attributes['xlink:href'].value = self._picture
         rootElem.getElementsByTagName('text')[0].firstChild.firstChild.nodeValue = str(self._id).center(3)
@@ -77,6 +80,8 @@ class Slide:
             and self._comment == other._comment \
             and self._picture == other._picture
 
+SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI = 500
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -84,28 +89,68 @@ def main():
       help='path to picture to embed'
     )
     parser.add_argument(
+      '--picture-dir',
+      nargs='?',
+      help='Path to directory of pictures to embed'
+    )
+    parser.add_argument(
       '--id',
-      help='id of the new slide'
+      help='ID of the new slide'
     )
     parser.add_argument(
       '--template',
       default=SLIDES35_DEFAULT_SVG_TEMPLATE,
       help='SVG template to use (default:{})'.format(SLIDES35_DEFAULT_SVG_TEMPLATE)
     )
+    parser.add_argument(
+      '--output',
+      nargs='?',
+      help='Output file name (or file name --picture-dir is used). If omitted, result is printed.'
+    )
+    parser.add_argument(
+      '--output-dir',
+      nargs='?',
+      help='Output file directory'
+    )
+    parser.add_argument(
+      '--dpi',
+      nargs='?',
+      default=SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI,
+      help='DPI dots-per-inch density for PNG output (default:{})'.format(SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI)
+    )
 
     args = parser.parse_args()
     
     if not args.picture:
-        print("no --picture provided. Exitting")
+        print('no --picture provided. Exitting')
         exit(1)
  
     if not args.id:
-        print("no --id provided. Exitting")
+        print('no --id provided. Exitting')
         exit(1)
 
-    s = Slide(args.template)
-    s.picture(args.picture).id(args.id)
-    print(s.svg())
+    s = Slide(args.template).picture(args.picture).id(args.id)
+    if not args.output:
+        print(s.svg())
+    else:
+        output_filename = args.output
+        export_to_png = False
+        if output_filename.lower().endswith('.png'):
+            export_to_png = True
+        if args.output_dir:
+            output_filename = Path(args.output_dir) / Path(output_filename)
+        if export_to_png:
+            svg_handle, svg_output_filename = tempfile.mkstemp('.svg')
+            with open(svg_handle, 'w') as f:
+                f.write(s.svg())
+        else:
+            svg_output_filename = output_filename
+            with open(svg_output_filename, 'w') as f:
+                f.write(s.svg())
+        if export_to_png:
+            dpi = args.dpi if args.dpi else SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
+            subprocess.run(['convert', '-density', str(dpi), svg_output_filename, output_filename])
+            os.unlink(svg_output_filename)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
