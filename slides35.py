@@ -6,9 +6,13 @@ Change image in one SVG file
 Make a list of JPG files sorted by date
 Make SVG files from JPG files with adequate numbering and file naming
 """
+import pdb
+
+SLIDES35_DEFAULT_SVG_TEMPLATE = 'templates/36x24mmNumbered.svg'
 
 from pathlib import Path
 from xml.dom import minidom
+import argparse
 
 class Slide:
     _id = None
@@ -23,7 +27,9 @@ class Slide:
         if not template:
             return self._template
         else:
-            self._template = template
+            if not Path(template).exists():
+                raise FileNotFoundError("Could not find template: {}".format(template))
+            self._template = str(Path(template))
             return self
 
     def id(self, page_id=None):
@@ -44,14 +50,23 @@ class Slide:
         if not picture:
             return self._picture
         else:
-            self._picture = picture
+            if not Path(picture).exists():
+                raise FileNotFoundError("Could not find picture: {}".format(picture))
+
+            self._picture = str(Path(picture))
             return self
 
     def svg(self):
         if not self._template or not Path(self._template).exists():
-            raise FileNotFoundError("set the SVG template first")
-        # TODO modify fields
-        return minidom.parse(self._template).toxml()
+            raise FileNotFoundError("Set the SVG template first")
+        if not self._id:
+            raise ValueError("Set the .id() value first")
+        if not self._picture:
+            raise ValueError("Set the .picture() value first")
+        rootElem = minidom.parse(self._template)
+        rootElem.getElementsByTagName('image')[0].attributes['xlink:href'].value = self._picture
+        rootElem.getElementsByTagName('text')[0].firstChild.firstChild.nodeValue = str(self._id).center(3)
+        return rootElem.toxml()
 
     def png(self):
         pass
@@ -61,3 +76,36 @@ class Slide:
             and self._id == other._id \
             and self._comment == other._comment \
             and self._picture == other._picture
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+      '--picture',
+      help='path to picture to embed'
+    )
+    parser.add_argument(
+      '--id',
+      help='id of the new slide'
+    )
+    parser.add_argument(
+      '--template',
+      default=SLIDES35_DEFAULT_SVG_TEMPLATE,
+      help='SVG template to use (default:{})'.format(SLIDES35_DEFAULT_SVG_TEMPLATE)
+    )
+
+    args = parser.parse_args()
+    
+    if not args.picture:
+        print("no --picture provided. Exitting")
+        exit(1)
+ 
+    if not args.id:
+        print("no --id provided. Exitting")
+        exit(1)
+
+    s = Slide(args.template)
+    s.picture(args.picture).id(args.id)
+    print(s.svg())
+
+if __name__ == "__main__":
+    main()
