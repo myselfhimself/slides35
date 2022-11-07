@@ -95,13 +95,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--picture", help="path to picture to embed")
     parser.add_argument(
-        "--picture-dir", nargs="?", help="Path to directory of pictures to embed"
+        "--pictures-dir", nargs="?", help="Path to directory of pictures to embed"
     )
     parser.add_argument("--id", help="ID of the new slide")
     parser.add_argument(
         "--template",
         default=SLIDES35_DEFAULT_SVG_TEMPLATE,
         help="SVG template to use (default:{})".format(SLIDES35_DEFAULT_SVG_TEMPLATE),
+    )
+    parser.add_argument(
+        "-0",
+        "--stdout",
+        help="Output SVG to STDOUT instead of a file. Only for SVG output (ie. without --output or with --output providing a .svg-ending filename).",
+        action="store_true",
     )
     parser.add_argument(
         "--output",
@@ -120,23 +126,33 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.picture:
-        print("no --picture provided. Exitting")
+    if not args.picture and not args.pictures_dir:
+        print("No --picture or --pictures-dir provided. Exitting")
+        exit(1)
+
+    if args.picture and args.pictures_dir:
+        print("Provide either --picture or --pictures-dir, not both. Exitting")
         exit(1)
 
     if not args.id:
-        print("no --id provided. Exitting")
+        print("No --id provided. Exitting")
         exit(1)
 
+    export_to_png = False
+    output_filename = args.output
+    if args.output and output_filename.lower().endswith(".png"):
+        export_to_png = True
+
     s = Slide(args.template).picture(args.picture).id(args.id)
-    if not args.output:
-        print(s.svg())
+    if args.stdout:
+        if export_to_png:
+            print(
+                "The --stdout SVG-outputting option cannot be used with .png output (see the suffix of your --output argument)"
+            )
+            exit(1)
+        else:
+            print(s.svg())
     else:
-        output_filename = args.output
-        export_to_png = False
-        if output_filename.lower().endswith(".png"):
-            export_to_png = True
-        # pdb.set_trace()
         if args.output_dir:
             if not Path(args.output_dir).exists():
                 os.makedirs(args.output_dir, exist_ok=True)

@@ -69,13 +69,51 @@ def test_picture_setter_getter():
 
 
 def test_command_stdout_svg_output(capsys):
-
     command_output = subprocess.check_output(
-        ["python", EXECUTABLE_UNDER_TEST, "--id", "1", "--picture", DEFAULT_PICTURE]
+        [
+            "python",
+            EXECUTABLE_UNDER_TEST,
+            "--id",
+            "1",
+            "--picture",
+            DEFAULT_PICTURE,
+            "--stdout",
+        ]
     )
     assert _normalize_xml(command_output) == _normalize_xml(
         Slide(DEFAULT_SLIDE_TEMPLATE).id(1).picture(DEFAULT_PICTURE).svg()
     )
+
+    command_output = subprocess.check_output(
+        [
+            "python",
+            EXECUTABLE_UNDER_TEST,
+            "--id",
+            "1",
+            "--picture",
+            DEFAULT_PICTURE,
+            "-0",
+        ]
+    )
+    assert _normalize_xml(command_output) == _normalize_xml(
+        Slide(DEFAULT_SLIDE_TEMPLATE).id(1).picture(DEFAULT_PICTURE).svg()
+    )
+
+    output_png = Path(tempfile.gettempdir()) / Path("something.png")
+    with pytest.raises(subprocess.CalledProcessError):
+        command_output = subprocess.check_output(
+            [
+                "python",
+                EXECUTABLE_UNDER_TEST,
+                "--id",
+                "1",
+                "--picture",
+                DEFAULT_PICTURE,
+                "--output",
+                output_png,
+                "-0",
+            ]
+        )
 
 
 def test_command_file_svg_output():
