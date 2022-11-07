@@ -13,11 +13,22 @@ Such slides can be nice for back-in-time presents or Art exhibitions.
 To prepare slides for transfer by one of the third-party companies listed below, make or reuse our 24x36mm (or width/height = 3/2 ratio) SVG template and run this script (see **usage** below). This is adapted for 2x2 inches (5x5cm) slide mounts.
 
 ## Usage
+Run the following for details:
+
 `python slides35.py --help`
-`python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png`
-`python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.svg`
-`python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png` # default DPI is 500
-`python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png --dpi 400`
+
+Examples:
+```sh
+python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png
+
+python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.svg
+
+python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png # default DPI is 500
+
+python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png --dpi 400
+
+python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png --output-dir=any/directory/which/may/not/exist/yet
+```
 
 ## About digital picture transfer onto slides
 That script helps in the preparatory steps for digital picture transfer onto a transparent surface for 5x5cm slides making (where the picture is 24x36mm).
