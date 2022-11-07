@@ -68,7 +68,7 @@ def test_picture_setter_getter():
         Slide().picture(DEFAULT_NON_EXISTING_PICTURE)
 
 
-def test_command_stdout_svg_output(capsys):
+def test_command_stdout_svg_output():
     command_output = subprocess.check_output(
         [
             "python",
@@ -84,7 +84,8 @@ def test_command_stdout_svg_output(capsys):
         Slide(DEFAULT_SLIDE_TEMPLATE).id(1).picture(DEFAULT_PICTURE).svg()
     )
 
-    command_output = subprocess.check_output(
+    output_png = Path(tempfile.gettempdir()) / Path("something.png")
+    result = subprocess.run(
         [
             "python",
             EXECUTABLE_UNDER_TEST,
@@ -92,28 +93,14 @@ def test_command_stdout_svg_output(capsys):
             "1",
             "--picture",
             DEFAULT_PICTURE,
-            "-0",
-        ]
+            "--output",
+            output_png,
+            "--stdout",
+        ],
+        capture_output=True,
     )
-    assert _normalize_xml(command_output) == _normalize_xml(
-        Slide(DEFAULT_SLIDE_TEMPLATE).id(1).picture(DEFAULT_PICTURE).svg()
-    )
-
-    output_png = Path(tempfile.gettempdir()) / Path("something.png")
-    with pytest.raises(subprocess.CalledProcessError):
-        command_output = subprocess.check_output(
-            [
-                "python",
-                EXECUTABLE_UNDER_TEST,
-                "--id",
-                "1",
-                "--picture",
-                DEFAULT_PICTURE,
-                "--output",
-                output_png,
-                "-0",
-            ]
-        )
+    assert result.returncode != 0
+    assert "--stdout" in str(result.stdout)
 
 
 def test_command_file_svg_output():
@@ -240,3 +227,20 @@ def test_command_file_png_output_default_density():
         == SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
     )
     os.unlink(output_png_path)
+
+
+def test_command_pictures_dir_not_implemented():
+    result = subprocess.run(
+        [
+            "python",
+            EXECUTABLE_UNDER_TEST,
+            "--id",
+            "1",
+            "--pictures-dir",
+            "anydir",
+            "--stdout",
+        ],
+        capture_output=True,
+    )
+    assert result.returncode != 0
+    assert "Not implemented" in str(result.stdout)

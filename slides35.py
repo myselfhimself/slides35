@@ -104,7 +104,6 @@ def main():
         help="SVG template to use (default:{})".format(SLIDES35_DEFAULT_SVG_TEMPLATE),
     )
     parser.add_argument(
-        "-0",
         "--stdout",
         help="Output SVG to STDOUT instead of a file. Only for SVG output (ie. without --output or with --output providing a .svg-ending filename).",
         action="store_true",
@@ -132,6 +131,10 @@ def main():
 
     if args.picture and args.pictures_dir:
         print("Provide either --picture or --pictures-dir, not both. Exitting")
+        exit(1)
+
+    if args.pictures_dir:
+        print("Not implemented yet. Exitting")
         exit(1)
 
     if not args.id:
