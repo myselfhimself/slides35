@@ -6,9 +6,9 @@ Change image in one SVG file
 Make a list of JPG files sorted by date
 Make SVG files from JPG files with adequate numbering and file naming
 """
-import pdb
 
 SLIDES35_DEFAULT_SVG_TEMPLATE = "templates/36x24mmNumbered.svg"
+SLIDES35_DEFAULT_OUTPUT_DPI = 500
 
 from pathlib import Path
 from xml.dom import minidom
@@ -60,7 +60,7 @@ class Slide:
             self._picture = str(Path(picture))
             return self
 
-    def svg(self):
+    def svg(self, output_path=None):
         if not self._template or not Path(self._template).exists():
             raise FileNotFoundError("Set the SVG template first")
         if not self._id:
@@ -74,10 +74,23 @@ class Slide:
         rootElem.getElementsByTagName("text")[0].firstChild.firstChild.nodeValue = str(
             self._id
         ).center(3)
-        return rootElem.toxml()
+        if output_path:
+            with open(output_path, "w") as f:
+                f.write(rootElem.toxml())
+            return self
+        else:
+            return rootElem.toxml()
 
-    def png(self):
-        pass
+    def png(self, output_path, dpi=SLIDES35_DEFAULT_OUTPUT_DPI):
+        svg_handle, svg_output_filename = tempfile.mkstemp(".svg")
+        self.svg(svg_output_filename)
+        dpi = dpi if dpi else SLIDES35_DEFAULT_OUTPUT_DPI
+        subprocess.run(
+            ["convert", "-density", str(dpi), svg_output_filename, output_path]
+        )
+        os.unlink(svg_output_filename)
+
+        return self
 
     def __eq__(self, other):
         return (
@@ -88,8 +101,16 @@ class Slide:
         )
 
 
-SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI = 500
-
+def do_slide(template, picture, identifier, output_path=None, output_as='svg', dpi=SLIDES35_DEFAULT_OUTPUT_DPI):
+    s = Slide(template).picture(picture).id(identifier)
+    if output_as == 'svg':
+        if output_path:
+            s.svg(output_path)
+        else:
+            print(s.svg())
+    else:
+        s.png(output_path=output_path, dpi=dpi)
+    return output_path
 
 def main():
     parser = argparse.ArgumentParser()
@@ -117,9 +138,9 @@ def main():
     parser.add_argument(
         "--dpi",
         nargs="?",
-        default=SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI,
+        default=SLIDES35_DEFAULT_OUTPUT_DPI,
         help="DPI dots-per-inch density for PNG output (default:{})".format(
-            SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
+            SLIDES35_DEFAULT_OUTPUT_DPI 
         ),
     )
 
@@ -146,7 +167,6 @@ def main():
     if args.output and output_filename.lower().endswith(".png"):
         export_to_png = True
 
-    s = Slide(args.template).picture(args.picture).id(args.id)
     if args.stdout:
         if export_to_png:
             print(
@@ -154,26 +174,14 @@ def main():
             )
             exit(1)
         else:
-            print(s.svg())
+            do_slide(template=args.template, picture=args.picture, identifier=args.id)
     else:
         if args.output_dir:
             if not Path(args.output_dir).exists():
                 os.makedirs(args.output_dir, exist_ok=True)
             output_filename = Path(args.output_dir) / Path(output_filename)
-        if export_to_png:
-            svg_handle, svg_output_filename = tempfile.mkstemp(".svg")
-            with open(svg_handle, "w") as f:
-                f.write(s.svg())
-        else:
-            svg_output_filename = output_filename
-            with open(svg_output_filename, "w") as f:
-                f.write(s.svg())
-        if export_to_png:
-            dpi = args.dpi if args.dpi else SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
-            subprocess.run(
-                ["convert", "-density", str(dpi), svg_output_filename, output_filename]
-            )
-            os.unlink(svg_output_filename)
+        output_file_format = 'png' if export_to_png else 'svg'
+        do_slide(template=args.template, picture=args.picture, identifier=args.id, output_path=output_filename, output_as=output_file_format, dpi=args.dpi)
 
 
 if __name__ == "__main__":

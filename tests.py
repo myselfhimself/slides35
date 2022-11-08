@@ -11,7 +11,7 @@ import imagesize
 from slides35 import (
     Slide,
     SLIDES35_DEFAULT_SVG_TEMPLATE,
-    SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI,
+    SLIDES35_DEFAULT_OUTPUT_DPI,
 )
 
 
@@ -130,7 +130,7 @@ def test_command_file_png_output():
     output_must_not_exist_svg_path = "test1.svg"
     dpi = 400
     assert (
-        dpi != SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
+        dpi != SLIDES35_DEFAULT_OUTPUT_DPI
     )  # avoid false positive because of same value as default
     subprocess.run(
         [
@@ -193,7 +193,7 @@ def test_command_file_png_output_dir():
 def test_command_file_png_output_default_density():
     output_png_path = "test1.png"
     dpi = 320
-    assert dpi != SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
+    assert dpi != SLIDES35_DEFAULT_OUTPUT_DPI
     subprocess.run(
         [
             "python",
@@ -224,7 +224,7 @@ def test_command_file_png_output_default_density():
     )
     assert (
         imagesize.getDPI(output_png_path)[0]
-        == SLIDES35_CLI_DEFAULT_CONVERT_PNG_DENSITY_DPI
+        == SLIDES35_DEFAULT_OUTPUT_DPI
     )
     os.unlink(output_png_path)
 
