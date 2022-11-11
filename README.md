@@ -1,4 +1,5 @@
 # Slides35
+![coverage](docs/coverage.svg) ![pytest ci status](https://github.com/myselfhimself/slides35/actions/workflows/ci.yml/badge.svg?branch=main)
 
 Slides35 is a Python 3 module for generating 35mm slide PNG images from SVG templates.
 Such slides can be nice for back-in-time presents or Art exhibitions.
@@ -58,4 +59,6 @@ One example of such viewers is the [KODAK 35mm Slide and Film Viewer](https://ww
 For `png` output, you need to install the `convert` executable (by ImageMagick).
 
 ## Testing
+First `pip install -r test-requirements.txt`.
+
 Run `python -m pytest tests.py` or `make tests`.
