@@ -9,6 +9,7 @@ Make SVG files from JPG files with adequate numbering and file naming
 
 SLIDES35_DEFAULT_SVG_TEMPLATE = "templates/36x24mmNumbered.svg"
 SLIDES35_DEFAULT_OUTPUT_DPI = 500
+SLIDES35_DEFAULT_OUTPUT_PREFIX = "slide_"
 
 from pathlib import Path
 from xml.dom import minidom
@@ -23,6 +24,7 @@ class Slide:
     _comment = None
     _picture = None
     _template = None
+    _prefix = None
 
     def __init__(self, template=None):
         self.template(template)
@@ -58,6 +60,13 @@ class Slide:
                 raise FileNotFoundError("Could not find picture: {}".format(picture))
 
             self._picture = str(Path(picture))
+            return self
+
+    def prefix(self, prefix=None):
+        if not prefix:
+            return self._prefix
+        else:
+            self._prefix = str(prefix)
             return self
 
     def svg(self, output_path=None):
@@ -101,9 +110,25 @@ class Slide:
         )
 
 
-def do_slide(template, picture, identifier, output_path=None, output_as='svg', dpi=SLIDES35_DEFAULT_OUTPUT_DPI):
+def do_slide(
+    template,
+    picture,
+    identifier,
+    output_path=None,
+    output_as="svg",
+    output_prefix=None,
+    dpi=SLIDES35_DEFAULT_OUTPUT_DPI,
+):
+    if output_as not in ("svg", "png"):
+        raise ValueError(
+            "output_as parameter must be 'svg' or 'png' but '{}' was provided"
+        )
+    if output_prefix:
+        output_path = "{}{}.{}".format(
+            SLIDES35_DEFAULT_OUTPUT_PREFIX, ("%00d" % identifier), output_as
+        )
     s = Slide(template).picture(picture).id(identifier)
-    if output_as == 'svg':
+    if output_as == "svg":
         if output_path:
             s.svg(output_path)
         else:
@@ -111,6 +136,7 @@ def do_slide(template, picture, identifier, output_path=None, output_as='svg', d
     else:
         s.png(output_path=output_path, dpi=dpi)
     return output_path
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -132,7 +158,15 @@ def main():
     parser.add_argument(
         "--output",
         nargs="?",
-        help="Output file name (or file name --picture-dir is used). If omitted, result is printed.",
+        help="Output file name (or file name --picture-dir is used). If omitted, result is printed. This cannot be used with --output-prefix.",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Enabled verbose output."
+    )
+    parser.add_argument(
+        "--output-prefix",
+        nargs="?",
+        help="Output file name prefix, which will be suffixed with a 3-digits integer (using --identifier or not if --pictures-dir is used). This option cannot be used with --output.",
     )
     parser.add_argument("--output-dir", nargs="?", help="Output file directory")
     parser.add_argument(
@@ -140,7 +174,7 @@ def main():
         nargs="?",
         default=SLIDES35_DEFAULT_OUTPUT_DPI,
         help="DPI dots-per-inch density for PNG output (default:{})".format(
-            SLIDES35_DEFAULT_OUTPUT_DPI 
+            SLIDES35_DEFAULT_OUTPUT_DPI
         ),
     )
 
@@ -154,13 +188,52 @@ def main():
         print("Provide either --picture or --pictures-dir, not both. Exitting")
         exit(1)
 
-    if args.pictures_dir:
-        print("Not implemented yet. Exitting")
+    if not args.id and not args.pictures_dir:
+        print(
+            "No --id provided (while not in a --pictures-dir input files situation). Exitting"
+        )
         exit(1)
 
-    if not args.id:
-        print("No --id provided. Exitting")
+    if args.output_prefix and args.output:
+        print("You cannot use --output-prefix and --output together")
         exit(1)
+
+    if args.output_dir:
+        if not Path(args.output_dir).exists():
+            os.makedirs(args.output_dir, exist_ok=True)
+
+    if args.pictures_dir:
+        if args.stdout:
+            print("--pictures-dir cannot be used with --stdout. Exitting")
+            exit(1)
+        pic_dir = Path(args.pictures_dir)
+        if not pic_dir.exists():
+            print(
+                "--pictures-dir directory {} does not exist. Exitting".format(pic_dir)
+            )
+            exit(1)
+        img_id = 1
+        for img in os.listdir(pic_dir):
+            img_path = Path(pic_dir) / Path(img)
+            output_dir = Path(args.output_dir if args.output_dir else ".")
+            output_img_path = output_dir / Path(img)
+            if args.verbose:
+                print("{} => {}".format(Path(img), output_img_path))
+            output_prefix = (
+                args.output_prefix
+                if args.output_prefix
+                else SLIDES35_DEFAULT_OUTPUT_PREFIX
+            )
+            do_slide(
+                template=args.template,
+                picture=img_path,
+                identifier=img_id,
+                output_path=output_img_path,
+                output_as="png",
+                output_prefix=output_prefix,
+            )
+            img_id += 1
+        exit(0)
 
     export_to_png = False
     output_filename = args.output
@@ -177,11 +250,16 @@ def main():
             do_slide(template=args.template, picture=args.picture, identifier=args.id)
     else:
         if args.output_dir:
-            if not Path(args.output_dir).exists():
-                os.makedirs(args.output_dir, exist_ok=True)
             output_filename = Path(args.output_dir) / Path(output_filename)
-        output_file_format = 'png' if export_to_png else 'svg'
-        do_slide(template=args.template, picture=args.picture, identifier=args.id, output_path=output_filename, output_as=output_file_format, dpi=args.dpi)
+        output_file_format = "png" if export_to_png else "svg"
+        do_slide(
+            template=args.template,
+            picture=args.picture,
+            identifier=args.id,
+            output_path=output_filename,
+            output_as=output_file_format,
+            dpi=args.dpi,
+        )
 
 
 if __name__ == "__main__":

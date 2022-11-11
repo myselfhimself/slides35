@@ -5,11 +5,14 @@ import subprocess
 import tempfile
 from xml.dom import minidom
 
+import numpy
+from PIL import Image
 import pytest
 import imagesize
 
 from slides35 import (
     Slide,
+    do_slide,
     SLIDES35_DEFAULT_SVG_TEMPLATE,
     SLIDES35_DEFAULT_OUTPUT_DPI,
 )
@@ -222,14 +225,11 @@ def test_command_file_png_output_default_density():
             output_png_path,
         ]
     )
-    assert (
-        imagesize.getDPI(output_png_path)[0]
-        == SLIDES35_DEFAULT_OUTPUT_DPI
-    )
+    assert imagesize.getDPI(output_png_path)[0] == SLIDES35_DEFAULT_OUTPUT_DPI
     os.unlink(output_png_path)
 
 
-def test_command_pictures_dir_not_implemented():
+def test_command_pictures_dir_not_exists():
     result = subprocess.run(
         [
             "python",
@@ -237,10 +237,37 @@ def test_command_pictures_dir_not_implemented():
             "--id",
             "1",
             "--pictures-dir",
-            "anydir",
-            "--stdout",
+            "non-existing-dir",
         ],
         capture_output=True,
     )
     assert result.returncode != 0
-    assert "Not implemented" in str(result.stdout)
+    assert "not exist" in str(result.stdout)
+
+
+def test_command_pictures_impossible_with_stdout():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        for n in range(10):
+            a = numpy.random.rand(30, 30, 3) * 255
+            im_out = Image.fromarray(a.astype("uint8")).convert("RGB")
+            im_out.save(Path(tmpdirname) / Path("out%000d.jpg" % n))
+        result = subprocess.run(
+            [
+                "python",
+                EXECUTABLE_UNDER_TEST,
+                "--id",
+                "1",
+                "--pictures-dir",
+                tmpdirname,
+                "--stdout",
+            ],
+            capture_output=True,
+        )
+        assert result.returncode == 1
+        assert "--pictures-dir cannot be used with --stdout." in str(result.stdout)
+
+
+def test_do_slide_wrong_output_as_value():
+    with pytest.raises(ValueError) as e:
+        do_slide(DEFAULT_SLIDE_TEMPLATE, DEFAULT_PICTURE, 1, output_as="bad_extension")
+    assert "output_as parameter must be" in e.value.args[0]
