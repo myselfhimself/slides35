@@ -10,12 +10,15 @@ Make SVG files from JPG files with adequate numbering and file naming
 SLIDES35_DEFAULT_SVG_TEMPLATE = "templates/36x24mmNumbered.svg"
 SLIDES35_DEFAULT_OUTPUT_DPI = 500
 SLIDES35_DEFAULT_OUTPUT_PREFIX = "slide_"
+SLIDES35_DEFAULT_OUTPUT_FILENAME_ZFILL_COUNT = 3
+SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER = "convert"
 
 from pathlib import Path
 from xml.dom import minidom
 import argparse
 import os
 import subprocess
+import shutil
 import tempfile
 
 
@@ -25,9 +28,18 @@ class Slide:
     _picture = None
     _template = None
     _prefix = None
+    _verbose = None
+    _converter = None
 
-    def __init__(self, template=None):
+    def __init__(
+        self,
+        template=None,
+        verbose=False,
+        converter=SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER,
+    ):
         self.template(template)
+        self.verbose(verbose)
+        self.converter(converter)
 
     def template(self, template=None):
         if not template:
@@ -37,6 +49,14 @@ class Slide:
                 raise FileNotFoundError("Could not find template: {}".format(template))
             self._template = str(Path(template))
             return self
+
+    def converter(self, converter=None):
+        self._converter = converter
+        return self
+
+    def verbose(self, verbose=True):
+        self._verbose = verbose
+        return self
 
     def id(self, page_id=None):
         if not page_id:
@@ -59,7 +79,7 @@ class Slide:
             if not Path(picture).exists():
                 raise FileNotFoundError("Could not find picture: {}".format(picture))
 
-            self._picture = str(Path(picture))
+            self._picture = str(Path(picture).resolve())
             return self
 
     def prefix(self, prefix=None):
@@ -84,19 +104,62 @@ class Slide:
             self._id
         ).center(3)
         if output_path:
+            if self._verbose:
+                print(
+                    "{} -> {} (id: {}) -> {}".format(
+                        self._picture, self._template, self._id, output_path
+                    )
+                )
             with open(output_path, "w") as f:
                 f.write(rootElem.toxml())
             return self
         else:
             return rootElem.toxml()
 
-    def png(self, output_path, dpi=SLIDES35_DEFAULT_OUTPUT_DPI):
+    def png(
+        self,
+        output_path,
+        dpi=SLIDES35_DEFAULT_OUTPUT_DPI,
+        converter=None,
+    ):
+        if not converter:
+            converter = self._converter
+        if not shutil.which(converter):
+            print("Cannot find executable path for converter '{}'".format(converter))
+            exit(1)
+
         svg_handle, svg_output_filename = tempfile.mkstemp(".svg")
         self.svg(svg_output_filename)
         dpi = dpi if dpi else SLIDES35_DEFAULT_OUTPUT_DPI
-        subprocess.run(
-            ["convert", "-density", str(dpi), svg_output_filename, output_path]
-        )
+        if self._verbose:
+            print("{} -> {}".format(svg_output_filename, output_path))
+
+        if converter == "convert":
+            command_to_run = [
+                "convert",
+                "-density",
+                str(dpi),
+                svg_output_filename,
+                output_path,
+            ]
+        elif converter == "inkscape":
+            command_to_run = [
+                "inkscape",
+                svg_output_filename,
+                "--export-dpi",
+                str(dpi),
+                "--export-filename",
+                output_path,
+            ]
+        else:
+            print("Unsupported converter '{}' while outputing to png".format(converter))
+            exit(1)
+
+        if self._verbose:
+            print(command_to_run)
+
+        subprocess.run(command_to_run)
+
         os.unlink(svg_output_filename)
 
         return self
@@ -114,20 +177,34 @@ def do_slide(
     template,
     picture,
     identifier,
-    output_path=None,
+    output_dir=".",
+    output_filename=None,
     output_as="svg",
-    output_prefix=None,
+    output_prefix=SLIDES35_DEFAULT_OUTPUT_PREFIX,
     dpi=SLIDES35_DEFAULT_OUTPUT_DPI,
+    converter=SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER,
+    verbose=False,
 ):
     if output_as not in ("svg", "png"):
         raise ValueError(
             "output_as parameter must be 'svg' or 'png' but '{}' was provided"
         )
-    if output_prefix:
+    if not output_filename:
         output_path = "{}{}.{}".format(
-            SLIDES35_DEFAULT_OUTPUT_PREFIX, ("%00d" % identifier), output_as
+            output_prefix,
+            (str(identifier).zfill(SLIDES35_DEFAULT_OUTPUT_FILENAME_ZFILL_COUNT)),
+            output_as,
         )
-    s = Slide(template).picture(picture).id(identifier)
+    else:
+        output_path = output_filename
+    output_path = Path(output_dir) / output_path
+    s = (
+        Slide(template)
+        .picture(picture)
+        .id(identifier)
+        .verbose(verbose)
+        .converter(converter)
+    )
     if output_as == "svg":
         if output_path:
             s.svg(output_path)
@@ -140,35 +217,48 @@ def do_slide(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--picture", help="path to picture to embed")
+    parser.add_argument("-i", "--picture", help="path to picture to embed")
     parser.add_argument(
-        "--pictures-dir", nargs="?", help="Path to directory of pictures to embed"
+        "-I", "--pictures-dir", nargs="?", help="Path to directory of pictures to embed"
     )
-    parser.add_argument("--id", help="ID of the new slide")
+    parser.add_argument("-n", "--id", help="ID of the new slide")
     parser.add_argument(
+        "-t",
         "--template",
         default=SLIDES35_DEFAULT_SVG_TEMPLATE,
-        help="SVG template to use (default:{})".format(SLIDES35_DEFAULT_SVG_TEMPLATE),
+        help="SVG template to use (default:{}).".format(SLIDES35_DEFAULT_SVG_TEMPLATE),
     )
     parser.add_argument(
+        "-0",
         "--stdout",
         help="Output SVG to STDOUT instead of a file. Only for SVG output (ie. without --output or with --output providing a .svg-ending filename).",
         action="store_true",
     )
     parser.add_argument(
+        "-o",
         "--output",
         nargs="?",
         help="Output file name (or file name --picture-dir is used). If omitted, result is printed. This cannot be used with --output-prefix.",
     )
     parser.add_argument(
+        "-c",
+        "--converter",
+        nargs="?",
+        default=SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER,
+        help="Executable to use to convert temporary SVG files to PNG (default:{}).".format(
+            SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER
+        ),
+    )
+    parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enabled verbose output."
     )
     parser.add_argument(
+        "-p",
         "--output-prefix",
         nargs="?",
         help="Output file name prefix, which will be suffixed with a 3-digits integer (using --identifier or not if --pictures-dir is used). This option cannot be used with --output.",
     )
-    parser.add_argument("--output-dir", nargs="?", help="Output file directory")
+    parser.add_argument("-d", "--output-dir", nargs="?", help="Output file directory")
     parser.add_argument(
         "--dpi",
         nargs="?",
@@ -198,9 +288,15 @@ def main():
         print("You cannot use --output-prefix and --output together")
         exit(1)
 
+    if args.stdout and args.output_filename:
+        print("You cannot use --output (filename) and --stdout together")
+        exit(1)
+
     if args.output_dir:
         if not Path(args.output_dir).exists():
             os.makedirs(args.output_dir, exist_ok=True)
+
+    output_dir = Path(args.output_dir if args.output_dir else ".")
 
     if args.pictures_dir:
         if args.stdout:
@@ -213,12 +309,9 @@ def main():
             )
             exit(1)
         img_id = 1
-        for img in os.listdir(pic_dir):
-            img_path = Path(pic_dir) / Path(img)
-            output_dir = Path(args.output_dir if args.output_dir else ".")
-            output_img_path = output_dir / Path(img)
-            if args.verbose:
-                print("{} => {}".format(Path(img), output_img_path))
+
+        for img in sorted(os.listdir(pic_dir)):
+            img_path = (Path(pic_dir) / Path(img)).resolve()
             output_prefix = (
                 args.output_prefix
                 if args.output_prefix
@@ -228,9 +321,11 @@ def main():
                 template=args.template,
                 picture=img_path,
                 identifier=img_id,
-                output_path=output_img_path,
+                output_dir=output_dir,
                 output_as="png",
                 output_prefix=output_prefix,
+                verbose=args.verbose,
+                converter=args.converter,
             )
             img_id += 1
         exit(0)
@@ -240,6 +335,8 @@ def main():
     if args.output and output_filename.lower().endswith(".png"):
         export_to_png = True
 
+    picture = Path(args.picture).resolve()
+
     if args.stdout:
         if export_to_png:
             print(
@@ -247,18 +344,24 @@ def main():
             )
             exit(1)
         else:
-            do_slide(template=args.template, picture=args.picture, identifier=args.id)
+            do_slide(
+                template=args.template,
+                picture=picture,
+                identifier=args.id,
+                verbose=args.verbose,
+            )
     else:
-        if args.output_dir:
-            output_filename = Path(args.output_dir) / Path(output_filename)
         output_file_format = "png" if export_to_png else "svg"
         do_slide(
             template=args.template,
-            picture=args.picture,
+            picture=picture,
             identifier=args.id,
-            output_path=output_filename,
+            output_filename=output_filename,
+            output_dir=output_dir,
             output_as=output_file_format,
             dpi=args.dpi,
+            verbose=args.verbose,
+            converter=args.converter,
         )
 
 

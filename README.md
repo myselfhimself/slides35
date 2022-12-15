@@ -18,6 +18,7 @@ Run the following for details:
 
 `python slides35.py --help`
 
+### Embedding a single picture in a template
 Examples:
 ```sh
 python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png
@@ -29,6 +30,18 @@ python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture tem
 python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png --dpi 400
 
 python slides35.py --template templates/36x24mmNumbered.svg --id 1 --picture templates/24x36mmImage.png --output myslide.png --output-dir=any/directory/which/may/not/exist/yet
+```
+
+### Embedding a pictures from an input dir, through a template, into an output directory
+Examples:
+```sh
+# Use default converter: ImageMagick's 'convert' (Cairo backend) and default template (templates/36x24mmNumbered.svg)
+python slides35.py --pictures-dir=PICS --output-dir=PICS_OUT -v
+
+python slides35.py --pictures-dir=PICS --output-dir=PICS_OUT -v --converter convert --teplate templates/36x24mmNumbered.svg # idem
+
+# Use Inkscape as converter for smoother shapes and blur support
+python slides35.py --pictures-dir=PICS --output-dir=PICS_OUT --converter inkscape -v
 ```
 
 ## About digital picture transfer onto slides
@@ -56,7 +69,7 @@ One example of such viewers is the [KODAK 35mm Slide and Film Viewer](https://ww
 
 ## Requirements
 `slides35` has no third-party libraries, it should work with Python 3.7 or later, or even earlier.
-For `png` output, you need to install the `convert` executable (by ImageMagick).
+For `png` output, you need to install the `convert` executable (by ImageMagick) or `inkscape` (and provide `--converter inkscape`).
 
 ## Testing
 First `pip install -r test-requirements.txt`.
