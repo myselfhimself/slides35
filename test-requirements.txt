@@ -15,6 +15,7 @@ platformdirs==2.5.3
 pluggy==1.0.0
 pyparsing==3.0.9
 pytest==7.2.0
+python-magic==0.4.27
 tomli==2.0.1
 typing_extensions==4.4.0
 wurlitzer==3.0.2

@@ -12,6 +12,7 @@ SLIDES35_DEFAULT_OUTPUT_DPI = 500
 SLIDES35_DEFAULT_OUTPUT_PREFIX = "slide_"
 SLIDES35_DEFAULT_OUTPUT_FILENAME_ZFILL_COUNT = 3
 SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER = "convert"
+SLIDES35_SUPPORTED_CONVERTERS = ("inkscape", "convert")
 
 from pathlib import Path
 from xml.dom import minidom
@@ -51,12 +52,26 @@ class Slide:
             return self
 
     def converter(self, converter=None):
-        self._converter = converter
+        if not converter:
+            return self._converter
+        else:
+            if type(converter) is not str:
+                raise TypeError("converter must be a str")
+            if converter not in SLIDES35_SUPPORTED_CONVERTERS:
+                raise ValueError(
+                    "converter must be one {}".format(SLIDES35_SUPPORTED_CONVERTERS)
+                )
+            self._converter = converter
         return self
 
-    def verbose(self, verbose=True):
-        self._verbose = verbose
-        return self
+    def verbose(self, verbose=None):
+        if verbose is None:
+            return self._verbose
+        else:
+            if type(verbose) is not bool:
+                raise TypeError("verbose flag must be a boolean")
+            self._verbose = verbose
+            return self
 
     def id(self, page_id=None):
         if not page_id:
@@ -120,12 +135,9 @@ class Slide:
         self,
         output_path,
         dpi=SLIDES35_DEFAULT_OUTPUT_DPI,
-        converter=None,
     ):
-        if not converter:
-            converter = self._converter
-        if not shutil.which(converter):
-            print("Cannot find executable path for converter '{}'".format(converter))
+        if not shutil.which(self._converter):
+            print("Cannot find executable path for converter '{}'".format(self._converter))
             exit(1)
 
         svg_handle, svg_output_filename = tempfile.mkstemp(".svg")
@@ -134,7 +146,7 @@ class Slide:
         if self._verbose:
             print("{} -> {}".format(svg_output_filename, output_path))
 
-        if converter == "convert":
+        if self._converter == "convert":
             command_to_run = [
                 "convert",
                 "-density",
@@ -142,7 +154,7 @@ class Slide:
                 svg_output_filename,
                 output_path,
             ]
-        elif converter == "inkscape":
+        elif self._converter == "inkscape":
             command_to_run = [
                 "inkscape",
                 svg_output_filename,
@@ -151,9 +163,6 @@ class Slide:
                 "--export-filename",
                 output_path,
             ]
-        else:
-            print("Unsupported converter '{}' while outputing to png".format(converter))
-            exit(1)
 
         if self._verbose:
             print(command_to_run)
@@ -178,6 +187,7 @@ def do_slide(
     picture,
     identifier,
     output_dir=".",
+    stdout=False,
     output_filename=None,
     output_as="svg",
     output_prefix=SLIDES35_DEFAULT_OUTPUT_PREFIX,
@@ -206,7 +216,7 @@ def do_slide(
         .converter(converter)
     )
     if output_as == "svg":
-        if output_path:
+        if not stdout:
             s.svg(output_path)
         else:
             print(s.svg())
@@ -288,7 +298,7 @@ def main():
         print("You cannot use --output-prefix and --output together")
         exit(1)
 
-    if args.stdout and args.output_filename:
+    if args.stdout and args.output:
         print("You cannot use --output (filename) and --stdout together")
         exit(1)
 
@@ -347,6 +357,7 @@ def main():
             do_slide(
                 template=args.template,
                 picture=picture,
+                stdout=True,
                 identifier=args.id,
                 verbose=args.verbose,
             )

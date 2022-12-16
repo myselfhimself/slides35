@@ -1,12 +1,17 @@
+# builtin modules
 import os
+import os.path
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import uuid
 from xml.dom import minidom
 
+# third-party modules
 import numpy
 from PIL import Image
+import magic
 import pytest
 import imagesize
 
@@ -15,6 +20,7 @@ from slides35 import (
     do_slide,
     SLIDES35_DEFAULT_SVG_TEMPLATE,
     SLIDES35_DEFAULT_OUTPUT_DPI,
+    SLIDES35_SUPPORTED_CONVERTERS
 )
 
 
@@ -66,9 +72,53 @@ def test_template_lookup_on_svg_output():
 
 
 def test_picture_setter_getter():
-    assert Slide().picture(DEFAULT_PICTURE).picture() == DEFAULT_PICTURE
+    assert (
+        Path(Slide().picture(DEFAULT_PICTURE).picture()).resolve()
+        == Path(DEFAULT_PICTURE).resolve()
+    )
     with pytest.raises(FileNotFoundError):
         Slide().picture(DEFAULT_NON_EXISTING_PICTURE)
+
+
+def test_verbose_setter_getter():
+    for val in [True, False]:
+        s = Slide().verbose(val)
+        assert s.verbose() == val
+    with pytest.raises(TypeError):
+        Slide().verbose("non boolean value")
+
+
+def test_converter_setter_getter():
+    for val in SLIDES35_SUPPORTED_CONVERTERS:
+        s = Slide().converter(val)
+        assert s.converter() == val
+    with pytest.raises(ValueError):
+        Slide().converter("someUnsupportedConverter")
+    with pytest.raises(TypeError):
+        Slide().converter([1, 2])
+
+def test_converters_png_output():
+    for converter in SLIDES35_SUPPORTED_CONVERTERS:
+        random_png_filename = str(uuid.uuid4()) + ".png"
+        result = subprocess.run(
+            [
+                "python",
+                EXECUTABLE_UNDER_TEST,
+                "--id",
+                "1",
+                "--picture",
+                DEFAULT_PICTURE,
+                "--output",
+                random_png_filename,
+                "--converter",
+                converter
+            ]
+        )
+        assert result.returncode == 0
+        assert Path(random_png_filename).resolve().is_file()
+        assert os.path.getsize(random_png_filename) > 1000
+        assert magic.Magic(mime=True, uncompress=True).from_file(random_png_filename).endswith("png")
+        os.unlink(random_png_filename)
 
 
 def test_command_stdout_svg_output():
