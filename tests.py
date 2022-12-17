@@ -79,46 +79,48 @@ def test_picture_setter_getter():
     with pytest.raises(FileNotFoundError):
         Slide().picture(DEFAULT_NON_EXISTING_PICTURE)
 
+@pytest.mark.parametrize("val", [True, False])
+def test_verbose_setter_getter(val):
+    s = Slide().verbose(val)
+    assert s.verbose() == val
 
-def test_verbose_setter_getter():
-    for val in [True, False]:
-        s = Slide().verbose(val)
-        assert s.verbose() == val
+def test_verbose_setter_typing():
     with pytest.raises(TypeError):
         Slide().verbose("non boolean value")
 
+@pytest.mark.parametrize("converter", SLIDES35_SUPPORTED_CONVERTERS)
+def test_converter_setter_getter(converter):
+    s = Slide().converter(converter)
+    assert s.converter() == converter
 
-def test_converter_setter_getter():
-    for val in SLIDES35_SUPPORTED_CONVERTERS:
-        s = Slide().converter(val)
-        assert s.converter() == val
+def test_converter_setter_typing():
     with pytest.raises(ValueError):
         Slide().converter("someUnsupportedConverter")
     with pytest.raises(TypeError):
         Slide().converter([1, 2])
 
-def test_converters_png_output():
-    for converter in SLIDES35_SUPPORTED_CONVERTERS:
-        random_png_filename = str(uuid.uuid4()) + ".png"
-        result = subprocess.run(
-            [
-                "python",
-                EXECUTABLE_UNDER_TEST,
-                "--id",
-                "1",
-                "--picture",
-                DEFAULT_PICTURE,
-                "--output",
-                random_png_filename,
-                "--converter",
-                converter
-            ]
-        )
-        assert result.returncode == 0
-        assert Path(random_png_filename).resolve().is_file()
-        assert os.path.getsize(random_png_filename) > 1000
-        assert magic.Magic(mime=True, uncompress=True).from_file(random_png_filename).endswith("png")
-        os.unlink(random_png_filename)
+@pytest.mark.parametrize("converter", SLIDES35_SUPPORTED_CONVERTERS)
+def test_converters_png_output(converter):
+    random_png_filename = str(uuid.uuid4()) + ".png"
+    result = subprocess.run(
+        [
+            "python",
+            EXECUTABLE_UNDER_TEST,
+            "--id",
+            "1",
+            "--picture",
+            DEFAULT_PICTURE,
+            "--output",
+            random_png_filename,
+            "--converter",
+            converter
+        ]
+    )
+    assert result.returncode == 0
+    assert Path(random_png_filename).resolve().is_file()
+    assert os.path.getsize(random_png_filename) > 1000
+    assert magic.Magic(mime=True, uncompress=True).from_file(random_png_filename).endswith("png")
+    os.unlink(random_png_filename)
 
 
 def test_command_stdout_svg_output():
@@ -177,11 +179,10 @@ def test_command_file_svg_output():
     )
     os.unlink(output_svg_path)  # tear down
 
-
-def test_command_file_png_output():
+@pytest.mark.parametrize("dpi", [300, 400])
+def test_command_file_png_output(dpi):
     output_png_path = "test1.png"
     output_must_not_exist_svg_path = "test1.svg"
-    dpi = 400
     assert (
         dpi != SLIDES35_DEFAULT_OUTPUT_DPI
     )  # avoid false positive because of same value as default
@@ -242,10 +243,9 @@ def test_command_file_png_output_dir():
     assert h >= svg_h
     shutil.rmtree(output_dir.parent)
 
-
-def test_command_file_png_output_default_density():
+@pytest.mark.parametrize("dpi", [320, 420])
+def test_command_file_png_output_default_density(dpi):
     output_png_path = "test1.png"
-    dpi = 320
     assert dpi != SLIDES35_DEFAULT_OUTPUT_DPI
     subprocess.run(
         [
