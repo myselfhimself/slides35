@@ -18,7 +18,9 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install inkscape (third-party svg->png converter)
       run: |
-        sudo apt-get install inkscape -y
+        sudo apt-get update
+        sudo apt-get install inkscape librsvg2-bin -y
+        convert --version
     - name: Run tests with coverage report
       run: |
         pip install -r test-requirements.txt

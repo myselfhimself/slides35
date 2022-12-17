@@ -179,8 +179,10 @@ def test_command_file_svg_output():
     )
     os.unlink(output_svg_path)  # tear down
 
+@pytest.mark.xfail("'GITHUB_JOB' in os.environ")
 @pytest.mark.parametrize("dpi", [300, 400])
 def test_command_file_png_output(dpi):
+    converter = "convert"
     output_png_path = "test1.png"
     output_must_not_exist_svg_path = "test1.svg"
     assert (
@@ -209,7 +211,15 @@ def test_command_file_png_output(dpi):
     assert ratio == svg_ratio
     assert w >= svg_w
     assert h >= svg_h
-    assert imagesize.getDPI(output_png_path)[0] == dpi
+    if converter == 'rsvg-convert':
+        if imagesize.getDPI(output_png_path)[0] != dpi:
+            os.unlink(output_png_path)
+            pytest.xfail("rsvg-convert does not store DPI metadata to PNG")
+    elif converter == 'convert' and 'GITHUB_JOB' in os.environ:
+        os.unlink(output_png_path)
+        pytest.xfail("convert fails setting DPI on recent versions")
+    else:
+        assert imagesize.getDPI(output_png_path)[0] == dpi
     os.unlink(output_png_path)
 
 
@@ -244,7 +254,8 @@ def test_command_file_png_output_dir():
     shutil.rmtree(output_dir.parent)
 
 @pytest.mark.parametrize("dpi", [320, 420])
-def test_command_file_png_output_default_density(dpi):
+@pytest.mark.parametrize("converter", SLIDES35_SUPPORTED_CONVERTERS)
+def test_command_file_png_output_default_density(dpi, converter):
     output_png_path = "test1.png"
     assert dpi != SLIDES35_DEFAULT_OUTPUT_DPI
     subprocess.run(
@@ -259,9 +270,19 @@ def test_command_file_png_output_default_density(dpi):
             output_png_path,
             "--dpi",
             str(dpi),
+            "--converter",
+            converter
         ]
     )
-    assert imagesize.getDPI(output_png_path)[0] == dpi
+    if converter == 'rsvg-convert':
+        if imagesize.getDPI(output_png_path)[0] != dpi:
+            os.unlink(output_png_path)
+            pytest.xfail("rsvg-convert does not store DPI metadata to PNG")
+    elif converter == 'convert' and 'GITHUB_JOB' in os.environ:
+        os.unlink(output_png_path)
+        pytest.xfail("convert fails setting DPI on recent versions")
+    else:
+        assert imagesize.getDPI(output_png_path)[0] == dpi
     os.unlink(output_png_path)
     subprocess.run(
         [
@@ -273,6 +294,8 @@ def test_command_file_png_output_default_density(dpi):
             DEFAULT_PICTURE,
             "--output",
             output_png_path,
+            "--converter",
+            converter
         ]
     )
     assert imagesize.getDPI(output_png_path)[0] == SLIDES35_DEFAULT_OUTPUT_DPI

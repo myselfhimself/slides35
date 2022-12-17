@@ -12,7 +12,7 @@ SLIDES35_DEFAULT_OUTPUT_DPI = 500
 SLIDES35_DEFAULT_OUTPUT_PREFIX = "slide_"
 SLIDES35_DEFAULT_OUTPUT_FILENAME_ZFILL_COUNT = 3
 SLIDES35_DEFAULT_SVG_TO_PNG_CONVERTER = "convert"
-SLIDES35_SUPPORTED_CONVERTERS = ("inkscape", "convert")
+SLIDES35_SUPPORTED_CONVERTERS = ("inkscape", "convert", "rsvg-convert")
 
 from pathlib import Path
 from xml.dom import minidom
@@ -137,7 +137,9 @@ class Slide:
         dpi=SLIDES35_DEFAULT_OUTPUT_DPI,
     ):
         if not shutil.which(self._converter):
-            print("Cannot find executable path for converter '{}'".format(self._converter))
+            print(
+                "Cannot find executable path for converter '{}'".format(self._converter)
+            )
             exit(1)
 
         svg_handle, svg_output_filename = tempfile.mkstemp(".svg")
@@ -149,8 +151,6 @@ class Slide:
         if self._converter == "convert":
             command_to_run = [
                 "convert",
-                "-density",
-                str(dpi),
                 "-resample",
                 str(dpi),
                 svg_output_filename,
@@ -164,6 +164,15 @@ class Slide:
                 str(dpi),
                 "--export-filename",
                 output_path,
+            ]
+        elif self._converter == "rsvg-convert":
+            command_to_run = [
+                "rsvg-convert",
+                "--dpi-x=" + str(dpi),
+                "--dpi-y=" + str(dpi),
+                "-o",
+                output_path,
+                svg_output_filename,
             ]
 
         if self._verbose:

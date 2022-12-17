@@ -69,7 +69,7 @@ One example of such viewers is the [KODAK 35mm Slide and Film Viewer](https://ww
 
 ## Requirements
 `slides35` has no third-party libraries, it should work with Python 3.7 or later, or even earlier.
-For `png` output, you need to install the `convert` executable (by ImageMagick) or `inkscape` (and provide `--converter inkscape`).
+For `png` output, you need to install the `convert` executable (by ImageMagick) or `inkscape` (and provide `--converter inkscape`) or `rsvg-convert`.
 
 ## Testing
 First `pip install -r test-requirements.txt`.
