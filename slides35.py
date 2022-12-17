@@ -151,6 +151,8 @@ class Slide:
                 "convert",
                 "-density",
                 str(dpi),
+                "-resample",
+                str(dpi),
                 svg_output_filename,
                 output_path,
             ]
